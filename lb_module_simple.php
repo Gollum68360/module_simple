@@ -1,5 +1,8 @@
 <?php
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 
 class Lb_Module_Simple extends Module
@@ -19,13 +22,36 @@ class Lb_Module_Simple extends Module
 
     public function install()
     {
-        return parent::install();
+
+        if (!parent::install() || !$this->registerHook('displayHome')) {
+            return false;
+        }
+
+        return true;
     }
 
-    public function uninstall()
+    public function hookDisplayHome()
     {
-        return parent::uninstall();
+
+
+        //déclarer un objet de type catégorie déjà hydraté
+        $categorie1 = new Category(Configuration::get('KAWA_INFO_CATETGORY_1'), $this->context->language->id);
+
+
+
+        //Récupère las infos de la table ps configuration et envoie à smarty
+
+        $this->context->smarty->assign(array(
+            'kawa_text' => Configuration::get('KAWA_INFO_CAT'), //clé : nom de ma rariable smarty /sa valeur
+            'categorie1' => $categorie1,
+        ));
+
+        //mon fichier tpl doit se trouver dans le dossier views/templates/hook
+        return $this->display(__FILE__, "home.tpl");
     }
+
+
+
 
     public function getContent()
     {
@@ -45,6 +71,8 @@ class Lb_Module_Simple extends Module
     public function displayForm()
     {
 
+        $categories = Category::getAllCategoriesName();
+
         //déclare au tableau avec les infos du formulaire
         $form_configuration['0']['form'] = [
             'legend' => [
@@ -60,9 +88,21 @@ class Lb_Module_Simple extends Module
 
                 [
                     'type' => 'text', // typede champ : text, select, radio, etc...
-                    'label' => $this->l('Prix minimum'),
+                    'label' => $this->l('Prix maximum'),
                     'name' => 'MAX',  // convention majuscule
                     'required' => true,
+                ],
+
+                [
+                    'type' => 'select',
+                    'label' => 'choisir une categorie',
+                    'name' => 'LB_CAT',
+                    'required' => true,
+                    'options' => array(
+                        'query' => $categories,
+                        'id' => 'id_category',
+                        'name' => 'name'
+                    )
                 ],
 
 
@@ -89,6 +129,7 @@ class Lb_Module_Simple extends Module
 
         $helper->fields_value['MIN'] = Tools::getValue('MIN', Configuration::get('MIN'));
         $helper->fields_value['MAX'] = Tools::getValue('MAX', Configuration::get('MAX'));
+        $helper->fields_value['LB_CAT'] = Tools::getValue('LB_CAT', Configuration::get('LB_CAT'));
 
         return $helper->generateForm($form_configuration);
     }
